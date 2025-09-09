@@ -34,6 +34,7 @@ private:
 	GLuint m_SolidRectShader = 0;
 
 	// lecture2
-	GLuint m_VBOtest = 0;
+	GLuint m_VBOtestPos = 0;
+	GLuint m_VBOtestColor = 0;
 };
 
