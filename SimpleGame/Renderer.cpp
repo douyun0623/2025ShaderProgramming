@@ -58,7 +58,7 @@ void Renderer::CreateVertexBufferObjects()
 
 
 	float temp = 0.5f;
-	float size = 0.2f;
+	float size = 0.1f;
 	float testPos[]
 		=
 	{
@@ -234,8 +234,14 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 
 void Renderer::DrawTest()
 {
+	m_time += 0.00016f;
+
 	//Program select
 	glUseProgram(m_TestShader);
+
+	int uTimeLoc = glGetUniformLocation(m_TestShader,
+		"u_Time");
+	glUniform1f(uTimeLoc, m_time);
 
 	int aPosLoc = glGetAttribLocation(m_TestShader, "a_Position");
 	int aColorLoc = glGetAttribLocation(m_TestShader, "a_Color");
