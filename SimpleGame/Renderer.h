@@ -40,5 +40,8 @@ private:
 
 	// Time
 	float m_time = 0;
+
+	// Particle
+	GLuint m_ParticleShader = 0;
 };
 
