@@ -368,7 +368,7 @@ void Renderer::GetGLPosition(float x, float y, float *newX, float *newY)
 
 void Renderer::GenerateParticles(int numParticle)
 {
-	int floatCountPervertex = 3 + 1 + 4 + 1; // x, y, z, value, r, g, b, a, sTime, vx, vy, vz
+	int floatCountPervertex = 3 + 1 + 4 + 1 + 3; // x, y, z, value, r, g, b, a, sTime, vx, vy, vz
 	int verticesCountPerParticle = 6;
 	int floatCountPerParticle = floatCountPervertex * verticesCountPerParticle;
 	int totalVerticesCount = numParticle * verticesCountPerParticle;
