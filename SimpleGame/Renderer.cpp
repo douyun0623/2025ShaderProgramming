@@ -24,7 +24,7 @@ void Renderer::Initialize(int windowSizeX, int windowSizeY)
 	CreateVertexBufferObjects();
 
 	// Create Grid Mesh
-	CreateGridMesh(5, 5);
+	CreateGridMesh(100, 100);
 
 	// Create Particles
 	GenerateParticles(50000);
@@ -374,9 +374,15 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 
 void Renderer::DrawGridMesh()
 {
+	m_time += 0.00016f;
+
 	//Program select
 	int shader = m_GridMeshShader;
 	glUseProgram(shader);
+
+	int uTimeLoc = glGetUniformLocation(shader,
+		"u_Time");
+	glUniform1f(uTimeLoc, m_time);
 
 	int attribPosition = glGetAttribLocation(
 		shader, "a_Position");
@@ -385,8 +391,8 @@ void Renderer::DrawGridMesh()
 	glBindBuffer(GL_ARRAY_BUFFER, m_GridMeshVBO);
 	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
 
-	// glDrawArrays(GL_TRIANGLES, 0, m_GridMeshVertexCount);
-	glDrawArrays(GL_LINE_STRIP, 0, m_GridMeshVertexCount);
+	glDrawArrays(GL_TRIANGLES, 0, m_GridMeshVertexCount);
+	// glDrawArrays(GL_LINE_STRIP, 0, m_GridMeshVertexCount);
 
 
 	glDisableVertexAttribArray(attribPosition);
