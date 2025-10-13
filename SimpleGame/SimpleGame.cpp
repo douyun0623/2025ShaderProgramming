@@ -31,7 +31,8 @@ void RenderScene(void)
 	// Renderer Test
 	// g_Renderer->DrawSolidRect(0, 0, 0, 100, 1, 1, 1, 1);
 	// g_Renderer->DrawTest();
-	g_Renderer->DrawParticle();
+	// g_Renderer->DrawParticle();
+	g_Renderer->DrawGridMesh();
 
 	glutSwapBuffers();
 }
