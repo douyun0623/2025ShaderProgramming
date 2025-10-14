@@ -54,6 +54,10 @@ void Renderer::CompileAllShaderPrograms()
 	m_GridMeshShader = CompileShaders(
 		"./Shaders/GridMesh.vs",
 		"./Shaders/GridMesh.fs");
+
+	m_FullScreenShader = CompileShaders(
+		"./Shaders/FullScreen.vs",
+		"./Shaders/FullScreen.fs");
 }
 
 void Renderer::DeleteAllShaderPrograms()
@@ -61,6 +65,8 @@ void Renderer::DeleteAllShaderPrograms()
 	glDeleteShader(m_SolidRectShader);
 	glDeleteShader(m_TestShader);
 	glDeleteShader(m_ParticleShader);
+	glDeleteShader(m_GridMeshShader);
+	glDeleteShader(m_FullScreenShader);
 }
 
 
@@ -137,6 +143,17 @@ void Renderer::CreateVertexBufferObjects()
 	glGenBuffers(1, &m_VBOtestColor);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBOtestColor);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(testColor), testColor, GL_STATIC_DRAW);
+
+	float fullRect[]
+		=
+	{
+		-1.f , -1.f , 0.f, -1.f , 1.f , 0.f, 1.f , 1.f , 0.f,
+		-1.f , -1.f , 0.f,  1.f , 1.f , 0.f, 1.f , -1.f , 0.f,
+	};
+
+	glGenBuffers(1, &m_VBOFullScreen);
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBOFullScreen);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fullRect), fullRect, GL_STATIC_DRAW);
 }
 
 void Renderer::CreateGridMesh(int x, int y)
@@ -400,6 +417,32 @@ void Renderer::DrawGridMesh()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Renderer::DrawFullScreenColor(float r, float g, float b, float a)
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	int shader = m_FullScreenShader;
+
+	//Program select
+	glUseProgram(shader);
+
+	glUniform4f(glGetUniformLocation(shader, "u_Color"), r, g, b, a);
+
+	int attribPosition = glGetAttribLocation(shader, "a_Position");
+	glEnableVertexAttribArray(attribPosition);
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBOFullScreen);
+	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, 
+		sizeof(float) * 3, 0);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glDisableVertexAttribArray(attribPosition);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glDisable(GL_BLEND);
+}
 
 void Renderer::DrawTest()
 {
