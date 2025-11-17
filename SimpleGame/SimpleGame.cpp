@@ -25,7 +25,7 @@ void RenderScene(void)
 		g_Renderer->ReloadAllShaderPrograms();
 		g_bNeedReloadShaderPrograms = false;
 	}
-	// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	g_Renderer->DrawFullScreenColor(0.0f, 0.f, 0.f, 0.02f);
 
