@@ -29,6 +29,11 @@ void Renderer::Initialize(int windowSizeX, int windowSizeY)
 	// Create Particles
 	GenerateParticles(50000);
 
+	// Create Texture
+	m_RGBTexture = CreatePngTexture("./rgb.png", GL_NEAREST);
+	m_Texture = CreatePngTexture("./rgb2.png", GL_NEAREST);
+	
+
 	// Fill Points
 	int index = 0;
 	for (int i = 0; i < 100; ++i)
@@ -440,6 +445,11 @@ void Renderer::DrawGridMesh()
 		shader, "a_Position");
 	glEnableVertexAttribArray(attribPosition);
 
+	int uTextureLoc = glGetUniformLocation(shader, "u_Texture");
+	glUniform1i(uTextureLoc, 0);
+
+	glBindTexture(GL_TEXTURE_2D, m_Texture);
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_GridMeshVBO);
 	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
 
@@ -481,7 +491,6 @@ void Renderer::DrawFullScreenColor(float r, float g, float b, float a)
 
 void Renderer::DrawFS()
 {
-
 	m_time += 0.00016f;
 
 	int shader = m_FSShader;
@@ -489,9 +498,13 @@ void Renderer::DrawFS()
 	//Program select
 	glUseProgram(shader);
 
-	int uTimeLoc = glGetUniformLocation(shader,
-		"u_Time");
+	int uTimeLoc = glGetUniformLocation(shader,"u_Time");
 	glUniform1f(uTimeLoc, m_time);
+
+	int uTextureLoc = glGetUniformLocation(shader, "u_RGBTexture");
+	glUniform1i(uTextureLoc, 0);
+
+	glBindTexture(GL_TEXTURE_2D, m_RGBTexture);
 
 	int attribPosition = glGetAttribLocation(shader, "a_Position");
 	glEnableVertexAttribArray(attribPosition);
@@ -756,5 +769,29 @@ void Renderer::GenerateParticles(int numParticle)
 	delete [] vertices;
 
 	m_VBOParticleVertexCount = totalVerticesCount;
+}
+
+GLuint Renderer::CreatePngTexture(char* filePath, GLuint samplingMethod)
+{
+	//Load Png
+	std::vector<unsigned char> image;
+	unsigned width, height;
+	unsigned error = lodepng::decode(image, width, height, filePath);
+	if (error != 0)
+	{
+		std::cout << "PNG image loading failed:" << filePath << std::endl;
+		assert(0);
+	}
+
+	GLuint temp;
+	glGenTextures(1, &temp);
+	glBindTexture(GL_TEXTURE_2D, temp);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
+		GL_UNSIGNED_BYTE, &image[0]);
+
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, samplingMethod);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, samplingMethod);
+
+	return temp;
 }
 
