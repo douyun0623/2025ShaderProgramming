@@ -53,9 +53,57 @@ void Flag()
     FragColor = newColor;
 }
 
+// 좌표 꼬아보기
+// 수식을 사용하여 if문 없이 발표자료 1을 결과를 만들어보자
+void Q1()
+{
+    vec2 newUV = vec2(v_UV.x, v_UV.y);  // 0-1, left top (0,0)
+    float x = newUV.x;  // 0-1
+    float y = 1 - abs((v_UV.y - 0.5) * 2);  // -0.5 - 0.5 => -1~1 => 1~0~1 => 0~1~0
+    vec4 newColor = texture(u_RGBTexture, vec2(x,y));
+
+    FragColor = newColor;
+}
+
+
+void Q2()
+{
+    vec2 newUV = vec2(v_UV.x, v_UV.y);  // 0-1, left top (0,0)
+    float x = fract(newUV.x * 3);  // 0-1 (3)
+    float y = (2 - floor(newUV.x * 3))/3 + newUV.y / 3; // 
+    vec4 newColor = texture(u_RGBTexture, vec2(x,y));
+
+    FragColor = newColor;
+}
+
+void Q3()
+{
+    vec2 newUV = vec2(v_UV.x, v_UV.y);  // 0-1, left top (0,0)
+    float x = fract(newUV.x * 3);  // 0-1 (3)
+    float y = (floor(newUV.x * 3))/3 + newUV.y / 3; // 
+    vec4 newColor = texture(u_RGBTexture, vec2(x,y));
+
+    FragColor = newColor;
+}
+
+void Q4()
+{
+    vec2 newUV = vec2(v_UV.x, v_UV.y);  // 0-1, left top (0,0)
+    float value = floor(newUV.y * 2) / 2 + 0.5;   // 0, 1 => 0.5 1
+    float x = fract(newUV.x * 2 + value);  // 0-1 (3)
+    float y = newUV.y * 2; // 
+    vec4 newColor = texture(u_RGBTexture, vec2(x,y));
+
+    FragColor = newColor;
+}
+
 void main()
 {
     // Test();
     // Circless();
-    Flag();
+    // Flag();
+    // Q1();
+    // Q2();
+    Q3();
+    // Q4();
 }
