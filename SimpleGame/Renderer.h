@@ -75,6 +75,17 @@ private:
 	GLuint m_FSShader = 0;
 
 	GLuint m_RGBTexture = 0;
-	GLuint m_Texture = 0;
+	GLuint m_TextureTwice = 0;
+	GLuint m_0Texture = 0;
+	GLuint m_1Texture = 0;
+	GLuint m_2Texture = 0;
+	GLuint m_3Texture = 0;
+	GLuint m_4Texture = 0;
+	GLuint m_5Texture = 0;
+	GLuint m_6Texture = 0;
+	GLuint m_7Texture = 0;
+	GLuint m_8Texture = 0;
+	GLuint m_9Texture = 0;
+	GLuint m_numTexture = 0;
 };
 
