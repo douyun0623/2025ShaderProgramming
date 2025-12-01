@@ -24,10 +24,10 @@ void Renderer::Initialize(int windowSizeX, int windowSizeY)
 	CreateVertexBufferObjects();
 
 	// Create Grid Mesh
-	CreateGridMesh(1000, 1000);
+	CreateGridMesh(500, 500);
 
 	// Create Particles
-	GenerateParticles(50000);
+	GenerateParticles(2500);
 
 	// Create Texture
 	m_RGBTexture = CreatePngTexture("./rgb.png", GL_NEAREST);
@@ -44,6 +44,8 @@ void Renderer::Initialize(int windowSizeX, int windowSizeY)
 	m_8Texture = CreatePngTexture("./8.png", GL_NEAREST);
 	m_9Texture = CreatePngTexture("./9.png", GL_NEAREST);
 	m_numTexture = CreatePngTexture("./numbers.png", GL_NEAREST);
+
+	CreateFBOs();
 
 	// Fill Points
 	int index = 0;
@@ -92,6 +94,10 @@ void Renderer::CompileAllShaderPrograms()
 	m_FSShader = CompileShaders(
 		"./Shaders/FS.vs",
 		"./Shaders/FS.fs");
+
+	m_TexShader = CompileShaders(
+		"./Shaders/Texture.vs",
+		"./Shaders/Texture.fs");
 }
 
 void Renderer::DeleteAllShaderPrograms()
@@ -102,8 +108,8 @@ void Renderer::DeleteAllShaderPrograms()
 	glDeleteShader(m_GridMeshShader);
 	glDeleteShader(m_FullScreenShader);
 	glDeleteShader(m_FSShader);
+	glDeleteShader(m_TexShader);
 }
-
 
 bool Renderer::IsInitialized()
 {
@@ -201,6 +207,25 @@ void Renderer::CreateVertexBufferObjects()
 	glGenBuffers(1, &m_VBOFS);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBOFS);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(FS), FS, GL_STATIC_DRAW);
+
+
+	// m_TexVBO
+	float TexRect[]
+		=
+	{
+		// Triangle A
+		-1.f, -1.f, 0.f,  0.f, 1.f,   // bottom -> v = 1 (flipped)
+		-1.f,  1.f, 0.f,  0.f, 0.f,   // top    -> v = 0
+		 1.f,  1.f, 0.f,  1.f, 0.f,   // top    -> v = 0
+		 // Triangle B
+		 -1.f, -1.f, 0.f,  0.f, 1.f,
+		  1.f,  1.f, 0.f,  1.f, 0.f,
+		  1.f, -1.f, 0.f,  1.f, 1.f
+	};
+
+	glGenBuffers(1, &m_TexVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_TexVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(TexRect), TexRect, GL_STATIC_DRAW);
 }
 
 void Renderer::CreateGridMesh(int x, int y)
@@ -509,6 +534,9 @@ void Renderer::DrawFS()
 	//Program select
 	glUseProgram(shader);
 
+	GLenum DrawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, DrawBuffers);
+
 	int uTimeLoc = glGetUniformLocation(shader,"u_Time");
 	glUniform1f(uTimeLoc, m_time);
 
@@ -564,6 +592,75 @@ void Renderer::DrawFS()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glDisable(GL_BLEND);
+}
+
+void Renderer::DrawTexture(float x, float y, float sx, float sy, GLuint TexID)
+{
+	// sx, sy --- 비율로 받냐, 절대 크기로 받냐... 선택임 ratio 로 받는걸로 하자
+
+	int shader = m_TexShader;
+
+	//Program select
+	glUseProgram(shader);
+
+	int uTex = glGetUniformLocation(shader, "u_TexID");
+	glUniform1i(uTex, 0);
+	int uSize = glGetUniformLocation(shader, "u_Size");
+	glUniform2f(uSize, sx, sy);
+	int uTran = glGetUniformLocation(shader, "u_Tran");
+	glUniform2f(uTran, x, y);
+	int uTime = glGetUniformLocation(shader, "u_Time");
+	glUniform1f(uTime, m_time);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, TexID);
+
+	int aPosition = glGetAttribLocation(shader, "a_Position");
+	int aTex = glGetAttribLocation(shader, "a_Tex");
+	glEnableVertexAttribArray(aPosition);
+	glEnableVertexAttribArray(aTex);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_TexVBO);
+	glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE,
+		sizeof(float) * 5, 0);
+	glVertexAttribPointer(aTex, 2, GL_FLOAT, GL_FALSE,
+		sizeof(float) * 5, (GLvoid*)(sizeof(float) * 3));
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glDisableVertexAttribArray(aPosition);
+	glDisableVertexAttribArray(aTex);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::DrawDebugTextures()
+{
+	DrawTexture(-0.5, -0.5, 0.5, 0.5, m_RT0_0);
+	DrawTexture( 0.5, -0.5, 0.5, 0.5, m_RT0_1);
+}
+
+void Renderer::DrawFBOs()
+{
+	// Set FBO
+	glBindFramebuffer(GL_FRAMEBUFFER, m_FBO0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, 512, 512);
+	// Draw 
+	DrawFS();
+
+
+	// Set FBO
+	glBindFramebuffer(GL_FRAMEBUFFER, m_FBO1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, 512, 512);
+	// Draw 
+	DrawGridMesh();
+
+
+	// RestoreFBO
+	glViewport(0, 0, 512, 512);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); //초기화 코드
 }
 
 void Renderer::DrawTest()
@@ -838,5 +935,103 @@ GLuint Renderer::CreatePngTexture(char* filePath, GLuint samplingMethod)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, samplingMethod);
 
 	return temp;
+}
+
+void Renderer::CreateFBOs()
+{
+	// Gen Color Buffer
+	GLuint textureId; glGenTextures(1, &m_RT0_0);
+	glBindTexture(GL_TEXTURE_2D, m_RT0_0);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	// Gen Color Buffer
+	textureId; glGenTextures(1, &m_RT0_1);
+	glBindTexture(GL_TEXTURE_2D, m_RT0_1);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	// Gen Depth Buffer
+	GLuint depthBuffer;
+	glGenRenderbuffers(1, &depthBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 512, 512);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	// 랜더 버퍼랑 댑스 버퍼의 차이?
+
+	// Gen FBO
+	glGenFramebuffers(1, &m_FBO0);
+
+	// Attach to FBO 
+	glBindFramebuffer(GL_FRAMEBUFFER, m_FBO0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+		GL_TEXTURE_2D, m_RT0_0, 0);	// GL_COLOR_ATTACHMENT0 0 => location 0와 연관 
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
+		GL_TEXTURE_2D, m_RT0_1, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+		GL_RENDERBUFFER, depthBuffer);
+
+
+	// Check
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+		assert(0);
+	}
+
+
+
+	// Gen Color Buffer
+	glGenTextures(1, &m_RT1_0);
+	glBindTexture(GL_TEXTURE_2D, m_RT1_0);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	glGenTextures(1, &m_RT1_1);
+	glBindTexture(GL_TEXTURE_2D, m_RT1_1);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	// Gen Depth Buffer
+	glGenRenderbuffers(1, &depthBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 512, 512);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	// 랜더 버퍼랑 댑스 버퍼의 차이?
+
+	// Gen FBO
+	glGenFramebuffers(1, &m_FBO1);
+
+	// Attach to FBO 
+	glBindFramebuffer(GL_FRAMEBUFFER, m_FBO1);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_RT1_0, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_RT1_1, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
+
+
+	// Check
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+		assert(0);
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
