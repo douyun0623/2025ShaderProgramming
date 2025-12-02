@@ -333,6 +333,6 @@ void main()
     // Digit();
     // Digit_Num();
 
-    FragColor   = Circless();  // 0_0
+    FragColor   = Circless();   // 0_0
     FragColor1  = Flag();       // 0_1
 }
